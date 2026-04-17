@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Posture Guard</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1675466124/drawing_utils.js"></script>
+</head>
+<body>
+  <header>
+    <h1>Posture Guard</h1>
+    <nav>
+      <button id="nav-collect" class="nav-btn active" data-view="collect">1. Collect Data</button>
+      <button id="nav-train" class="nav-btn" data-view="train">2. Train Model</button>
+      <button id="nav-monitor" class="nav-btn" data-view="monitor">3. Monitor</button>
+    </nav>
+  </header>
+
+  <!-- Session Calibration Overlay -->
+  <div id="calibration-overlay" class="calibration-overlay" hidden>
+    <div class="calibration-card">
+      <h2>Session Calibration</h2>
+      <p class="help-text">Quick tune-up! Take a few new samples so the model keeps improving each session.</p>
+      <div class="camera-container">
+        <video id="video-calibrate" autoplay playsinline></video>
+        <canvas id="canvas-calibrate"></canvas>
+        <div id="no-pose-calibrate" class="no-pose-warning" hidden>No pose detected</div>
+      </div>
+      <div class="calibration-counts">
+        <span id="cal-good-count" class="count good">Good: 0 / 5</span>
+        <span id="cal-bad-count" class="count bad">Bad: 0 / 5</span>
+      </div>
+      <div class="capture-buttons">
+        <button id="cal-btn-good" class="btn btn-good" disabled>Good Posture</button>
+        <button id="cal-btn-bad" class="btn btn-bad" disabled>Bad Posture</button>
+      </div>
+      <div id="cal-status" class="cal-status" hidden></div>
+      <div class="calibration-actions">
+        <button id="cal-btn-done" class="btn btn-primary btn-large" disabled>Retrain &amp; Start Monitoring</button>
+        <button id="cal-btn-skip" class="btn btn-secondary">Skip Calibration</button>
+      </div>
+    </div>
+  </div>
+
+  <main>
+    <!-- View 1: Collect Data -->
+    <section id="view-collect" class="view active">
+      <div class="view-header">
+        <h2>Collect Posture Samples</h2>
+        <p class="help-text">Position yourself in front of the camera. Click the buttons to label your current posture. Collect at least 20 samples of each type.</p>
+      </div>
+      <div class="camera-container">
+        <video id="video-collect" autoplay playsinline></video>
+        <canvas id="canvas-collect"></canvas>
+        <div id="no-pose-collect" class="no-pose-warning" hidden>No pose detected — make sure you're visible</div>
+      </div>
+      <div class="controls">
+        <div class="sample-counts">
+          <span id="good-count" class="count good">Good: 0</span>
+          <span id="bad-count" class="count bad">Bad: 0</span>
+        </div>
+        <div class="capture-buttons">
+          <button id="btn-good" class="btn btn-good" disabled>Good Posture</button>
+          <button id="btn-bad" class="btn btn-bad" disabled>Bad Posture</button>
+        </div>
+        <div class="action-buttons">
+          <button id="btn-clear" class="btn btn-secondary">Clear Data</button>
+          <button id="btn-to-train" class="btn btn-primary" disabled>Train Model &rarr;</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- View 2: Train Model -->
+    <section id="view-train" class="view">
+      <div class="view-header">
+        <h2>Train Your Model</h2>
+        <p class="help-text">Train a personalized posture classifier using your collected samples.</p>
+      </div>
+      <div class="train-content">
+        <div id="train-info" class="train-info">
+          <p>Samples loaded: <span id="train-sample-count">0</span></p>
+        </div>
+        <button id="btn-train" class="btn btn-primary btn-large">Start Training</button>
+        <div id="training-progress" class="training-progress" hidden>
+          <h3>Training Progress</h3>
+          <div class="progress-bar-container">
+            <div id="progress-bar" class="progress-bar"></div>
+          </div>
+          <p id="progress-text">Epoch 0 / 50</p>
+          <div class="metrics">
+            <div class="metric">
+              <span class="metric-label">Loss</span>
+              <span id="metric-loss" class="metric-value">—</span>
+            </div>
+            <div class="metric">
+              <span class="metric-label">Accuracy</span>
+              <span id="metric-accuracy" class="metric-value">—</span>
+            </div>
+          </div>
+        </div>
+        <div id="train-results" class="train-results" hidden>
+          <h3>Training Complete</h3>
+          <div class="metrics">
+            <div class="metric">
+              <span class="metric-label">Validation Accuracy</span>
+              <span id="val-accuracy" class="metric-value">—</span>
+            </div>
+            <div class="metric">
+              <span class="metric-label">Validation Loss</span>
+              <span id="val-loss" class="metric-value">—</span>
+            </div>
+          </div>
+          <button id="btn-to-monitor" class="btn btn-primary btn-large">Start Monitoring &rarr;</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- View 3: Monitor -->
+    <section id="view-monitor" class="view">
+      <div class="view-header">
+        <h2>Posture Monitor</h2>
+        <p class="help-text">Real-time posture monitoring. Sit naturally and the app will alert you if you slouch.</p>
+      </div>
+      <div class="camera-container">
+        <video id="video-monitor" autoplay playsinline></video>
+        <canvas id="canvas-monitor"></canvas>
+        <div id="no-pose-monitor" class="no-pose-warning" hidden>No pose detected — make sure you're visible</div>
+      </div>
+      <div id="posture-status" class="posture-status good">
+        <span id="status-text">Good Posture &#x2713;</span>
+      </div>
+      <div id="warning-banner" class="warning-banner" hidden>
+        SIT UP STRAIGHT!
+      </div>
+      <div class="monitor-controls">
+        <div class="slider-container">
+          <label for="threshold-slider">Sensitivity: <span id="threshold-value">0.50</span></label>
+          <input id="threshold-slider" type="range" min="0.1" max="0.9" step="0.05" value="0.5">
+        </div>
+        <button id="btn-stop-monitor" class="btn btn-secondary">Stop Monitoring</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/camera.js"></script>
+  <script src="js/pose.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/model.js"></script>
+  <script src="js/alarm.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
