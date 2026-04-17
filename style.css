@@ -1,0 +1,440 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #1a1a2e;
+  color: #e0e0e0;
+  min-height: 100vh;
+  transition: border 0.3s ease;
+}
+
+body.alarm-active {
+  border: 8px solid #ff4444;
+  animation: border-flash 0.8s ease-in-out infinite;
+}
+
+@keyframes border-flash {
+  0%, 100% { border-color: #ff4444; }
+  50% { border-color: #ff0000; }
+}
+
+header {
+  text-align: center;
+  padding: 16px 20px;
+  background: #16213e;
+  border-bottom: 1px solid #0f3460;
+}
+
+header h1 {
+  font-size: 24px;
+  margin-bottom: 12px;
+  color: #e94560;
+}
+
+nav {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.nav-btn {
+  padding: 8px 20px;
+  border: 1px solid #0f3460;
+  background: transparent;
+  color: #a0a0b0;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.nav-btn.active {
+  background: #0f3460;
+  color: #fff;
+  border-color: #e94560;
+}
+
+.nav-btn:hover {
+  background: #0f3460;
+  color: #fff;
+}
+
+main {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.view {
+  display: none;
+}
+
+.view.active {
+  display: block;
+}
+
+.view-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.view-header h2 {
+  font-size: 22px;
+  margin-bottom: 6px;
+}
+
+.help-text {
+  color: #888;
+  font-size: 14px;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+/* Camera */
+.camera-container {
+  position: relative;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto 20px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #000;
+  aspect-ratio: 4 / 3;
+}
+
+.camera-container video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+
+.camera-container canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transform: scaleX(-1);
+}
+
+.no-pose-warning {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 68, 68, 0.85);
+  color: #fff;
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  z-index: 5;
+}
+
+/* Controls */
+.controls {
+  text-align: center;
+}
+
+.sample-counts {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-bottom: 16px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.count.good { color: #4caf50; }
+.count.bad { color: #f44336; }
+
+.capture-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.btn {
+  padding: 10px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-good {
+  background: #4caf50;
+  color: #fff;
+}
+.btn-good:hover:not(:disabled) { background: #43a047; }
+
+.btn-bad {
+  background: #f44336;
+  color: #fff;
+}
+.btn-bad:hover:not(:disabled) { background: #e53935; }
+
+.btn-primary {
+  background: #e94560;
+  color: #fff;
+}
+.btn-primary:hover:not(:disabled) { background: #d63851; }
+
+.btn-secondary {
+  background: #333;
+  color: #ccc;
+  border: 1px solid #555;
+}
+.btn-secondary:hover:not(:disabled) { background: #444; }
+
+.btn-large {
+  padding: 14px 40px;
+  font-size: 18px;
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+/* Training View */
+.train-content {
+  text-align: center;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.train-info {
+  margin-bottom: 20px;
+  font-size: 16px;
+  color: #aaa;
+}
+
+.training-progress {
+  margin: 24px 0;
+}
+
+.training-progress h3 {
+  margin-bottom: 12px;
+}
+
+.progress-bar-container {
+  width: 100%;
+  height: 20px;
+  background: #333;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.progress-bar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #e94560, #4caf50);
+  transition: width 0.3s;
+  border-radius: 10px;
+}
+
+#progress-text {
+  color: #aaa;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.metrics {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  margin-top: 12px;
+}
+
+.metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.metric-label {
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 4px;
+}
+
+.metric-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+}
+
+/* Training Results */
+.train-results {
+  margin-top: 24px;
+}
+
+.train-results h3 {
+  margin-bottom: 16px;
+  color: #4caf50;
+}
+
+.train-results .btn {
+  margin-top: 20px;
+}
+
+/* Monitor View */
+.posture-status {
+  text-align: center;
+  padding: 16px;
+  border-radius: 10px;
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  transition: all 0.3s;
+}
+
+.posture-status.good {
+  background: rgba(76, 175, 80, 0.15);
+  color: #4caf50;
+  border: 2px solid #4caf50;
+}
+
+.posture-status.bad {
+  background: rgba(244, 67, 54, 0.15);
+  color: #f44336;
+  border: 2px solid #f44336;
+}
+
+.warning-banner {
+  text-align: center;
+  background: #f44336;
+  color: #fff;
+  padding: 14px;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  animation: pulse 0.6s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.monitor-controls {
+  text-align: center;
+}
+
+.slider-container {
+  margin-bottom: 16px;
+}
+
+.slider-container label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14px;
+  color: #aaa;
+}
+
+input[type="range"] {
+  width: 250px;
+  accent-color: #e94560;
+}
+
+/* Capture flash effect */
+.capture-flash {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.4);
+  z-index: 10;
+  animation: flash-fade 0.3s ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes flash-fade {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/* Calibration Overlay */
+.calibration-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(10, 10, 20, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.calibration-card {
+  background: #1a1a2e;
+  border: 1px solid #0f3460;
+  border-radius: 14px;
+  padding: 28px 24px;
+  max-width: 680px;
+  width: 100%;
+  text-align: center;
+}
+
+.calibration-card h2 {
+  font-size: 22px;
+  margin-bottom: 6px;
+  color: #e94560;
+}
+
+.calibration-card .help-text {
+  margin-bottom: 16px;
+}
+
+.calibration-counts {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-bottom: 14px;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.cal-status {
+  margin: 10px 0;
+  font-size: 14px;
+  color: #aaa;
+}
+
+.calibration-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  header h1 { font-size: 20px; }
+  .nav-btn { padding: 6px 14px; font-size: 12px; }
+  .sample-counts { font-size: 16px; }
+  .btn { padding: 8px 18px; font-size: 14px; }
+  .posture-status { font-size: 22px; }
+  .warning-banner { font-size: 18px; }
+}
