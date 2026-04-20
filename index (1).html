@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meme Generator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', Arial, sans-serif;
+            background: #f5f5f5;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .app-shell { display: flex; flex-direction: column; height: 100vh; }
+
+        /* ── Toolbar ── */
+        .toolbar {
+            height: 48px;
+            background: #ffffff;
+            border-bottom: 1px solid #e5e5e5;
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            gap: 16px;
+            flex-shrink: 0;
+        }
+        .toolbar-left { font-size: 13px; font-weight: 600; color: #333; white-space: nowrap; }
+        .toolbar-center { flex: 1; display: flex; justify-content: center; }
+        .toolbar-right { display: flex; gap: 6px; align-items: center; }
+
+        .seg-control {
+            display: inline-flex;
+            background: #f0f0f0;
+            border-radius: 6px;
+            padding: 2px;
+            gap: 2px;
+        }
+        .seg-control button {
+            padding: 5px 14px; font-size: 12px; font-weight: 500;
+            font-family: 'Inter', sans-serif; border: none; border-radius: 4px;
+            cursor: pointer; background: transparent; color: #666;
+            transition: all 0.15s ease; white-space: nowrap;
+        }
+        .seg-control button:hover { color: #333; }
+        .seg-control button.active {
+            background: #ffffff; color: #333;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .toolbar-btn {
+            padding: 5px 12px; font-size: 12px; font-weight: 500;
+            font-family: 'Inter', sans-serif; border: 1px solid #e5e5e5;
+            border-radius: 6px; cursor: pointer; background: #ffffff; color: #333;
+            transition: all 0.15s ease;
+        }
+        .toolbar-btn:hover { background: #f5f5f5; border-color: #d0d0d0; }
+        .toolbar-btn-primary { background: #0c8ce9; color: #fff; border-color: #0c8ce9; }
+        .toolbar-btn-primary:hover { background: #0a7ad4; border-color: #0a7ad4; }
+        .toolbar-btn-ghost { border-color: transparent; background: transparent; color: #666; }
+        .toolbar-btn-ghost:hover { background: #f0f0f0; color: #333; }
+
+        /* ── Workspace ── */
+        .workspace { display: flex; flex: 1; overflow: hidden; }
+
+        /* ── Sidebar ── */
+        .sidebar {
+            width: 280px; background: #ffffff;
+            border-right: 1px solid #e5e5e5;
+            overflow-y: auto; flex-shrink: 0;
+        }
+        .sidebar-header {
+            padding: 12px 16px; font-size: 11px; font-weight: 600;
+            color: #999; text-transform: uppercase; letter-spacing: 0.5px;
+            border-bottom: 1px solid #e5e5e5;
+        }
+        .sidebar-section {
+            padding: 10px 16px; border-bottom: 1px solid #f0f0f0;
+        }
+        .sidebar-section label {
+            display: block; font-size: 11px; font-weight: 500;
+            color: #999; margin-bottom: 4px;
+            text-transform: uppercase; letter-spacing: 0.3px;
+        }
+        .sidebar-section input[type="text"],
+        .sidebar-section textarea {
+            width: 100%; padding: 6px 8px; font-size: 13px;
+            font-family: 'Inter', sans-serif; border: 1px solid #e5e5e5;
+            border-radius: 6px; background: #fafafa; color: #333;
+            transition: border-color 0.15s;
+        }
+        .sidebar-section input[type="text"]:focus,
+        .sidebar-section textarea:focus {
+            outline: none; border-color: #0c8ce9; background: #fff;
+        }
+        .sidebar-section textarea { min-height: 40px; resize: vertical; }
+
+        .sidebar-color-row {
+            display: flex; align-items: center; gap: 8px;
+        }
+        .sidebar-color-row input[type="color"] {
+            width: 32px; height: 28px; border: 1px solid #e5e5e5;
+            border-radius: 4px; cursor: pointer; padding: 1px;
+            background: #fafafa;
+        }
+        .sidebar-color-row input[type="text"] {
+            flex: 1;
+        }
+
+        .sidebar-add-btn {
+            display: block; width: 100%; padding: 7px 0;
+            font-size: 12px; font-family: 'Inter', sans-serif; font-weight: 500;
+            border: 1px dashed #ccc; border-radius: 6px;
+            background: transparent; color: #666; cursor: pointer;
+            transition: all 0.15s; margin-top: 4px;
+        }
+        .sidebar-add-btn:hover { border-color: #0c8ce9; color: #0c8ce9; }
+
+        .sidebar-item-row {
+            display: flex; align-items: center; gap: 8px;
+            padding: 6px 8px; border: 1px solid #e5e5e5; border-radius: 6px;
+            margin-bottom: 6px; cursor: pointer; transition: all 0.15s; background: #fafafa;
+        }
+        .sidebar-item-row:hover { border-color: #ccc; }
+        .sidebar-item-row.selected { border-color: #0c8ce9; background: #f0f7ff; }
+
+        .sidebar-item-thumb {
+            width: 32px; height: 32px; border-radius: 4px;
+            object-fit: cover; border: 1px solid #ddd; flex-shrink: 0;
+        }
+        .sidebar-item-placeholder {
+            width: 32px; height: 32px; border-radius: 4px;
+            background: #eee; flex-shrink: 0; display: flex;
+            align-items: center; justify-content: center;
+            font-size: 14px; color: #bbb;
+        }
+        .sidebar-item-label {
+            flex: 1; font-size: 12px; font-weight: 500; color: #333;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .sidebar-item-remove {
+            width: 18px; height: 18px; border-radius: 50%; border: none;
+            background: transparent; color: #bbb; font-size: 12px;
+            cursor: pointer; padding: 0; line-height: 18px;
+            text-align: center; flex-shrink: 0;
+        }
+        .sidebar-item-remove:hover { background: #fee; color: #f44; }
+
+        .sidebar-item-edit {
+            padding: 8px; border: 1px solid #0c8ce9; border-radius: 6px;
+            margin-bottom: 6px; background: #f0f7ff;
+        }
+        .sidebar-item-edit input[type="file"] { font-size: 10px; width: 100%; margin-bottom: 4px; }
+        .sidebar-item-edit input[type="text"] {
+            width: 100%; padding: 5px 7px; font-size: 12px;
+            font-family: 'Inter', sans-serif; border: 1px solid #ddd; border-radius: 4px;
+        }
+
+        /* ── Canvas Area ── */
+        .canvas-area {
+            flex: 1; background: #e8e8e8;
+            display: flex; align-items: center; justify-content: center;
+            overflow: auto; padding: 40px;
+        }
+        .artboard {
+            background: #ffffff; border-radius: 8px;
+            box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+            padding: 40px; overflow: hidden;
+            /* width & height set via JS inline style */
+        }
+
+        #memeCanvas {
+            width: 100%; height: 100%;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+        }
+
+        /* ── Meme Common ── */
+        .meme-title {
+            font-size: 32px; font-weight: 700; text-align: center;
+            margin-bottom: 24px; text-transform: uppercase;
+            font-family: Arial, sans-serif;
+        }
+        .cell-image {
+            width: 120px; height: 120px; object-fit: cover;
+            border-radius: 6px; border: 1px solid #ddd;
+        }
+        .cell-text {
+            font-weight: 600; text-align: center; line-height: 1.3;
+            font-size: 13px; color: #000; font-family: Arial, sans-serif;
+        }
+        .edit-controls { width: 100%; margin-top: 8px; }
+        .edit-controls input[type="file"] {
+            font-size: 10px; font-family: 'Inter', sans-serif;
+            margin-bottom: 6px; width: 100%;
+        }
+        .edit-controls textarea, .edit-controls input[type="text"] {
+            width: 100%; padding: 5px 7px; font-size: 12px;
+            font-family: 'Inter', sans-serif; border: 1px solid #ddd;
+            border-radius: 4px; background: #fafafa; color: #333;
+        }
+        .edit-controls textarea { min-height: 40px; resize: vertical; }
+        .edit-controls textarea:focus, .edit-controls input[type="text"]:focus {
+            outline: none; border-color: #0c8ce9; background: #fff;
+        }
+        .axis-info {
+            text-align: center; font-weight: 600; font-size: 14px;
+            color: #000; margin: 8px 0; font-family: Arial, sans-serif;
+        }
+
+        /* ── Alignment Chart ── */
+        .alignment-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            border: 2px solid #000; width: 100%;
+        }
+        .alignment-cell {
+            border: 1px solid #000; padding: 16px;
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center; background: #fff; gap: 8px;
+        }
+
+        /* ── Drag Canvas (Venn & Two Axis) ── */
+        .drag-canvas { position: relative; user-select: none; }
+
+        .drag-item {
+            position: absolute; display: flex; flex-direction: column;
+            align-items: center; gap: 3px; padding: 5px; border-radius: 6px;
+            background: #fff; border: 1px solid #ddd;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+            cursor: grab; z-index: 5; transform: translate(-50%, -50%);
+            min-width: 64px; text-align: center; font-family: Arial, sans-serif;
+        }
+        .drag-item.preview { cursor: default; }
+        .drag-item.dragging {
+            cursor: grabbing; opacity: 0.85; z-index: 100;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+        }
+        .drag-item img {
+            width: 56px; height: 56px; object-fit: cover;
+            border-radius: 4px; border: 1px solid #ddd;
+        }
+        .drag-item span {
+            font-size: 11px; font-weight: 600; color: #000;
+            max-width: 72px; overflow: hidden;
+            text-overflow: ellipsis; white-space: nowrap;
+        }
+        .drag-item-remove {
+            position: absolute; top: -7px; right: -7px;
+            width: 16px; height: 16px; border-radius: 50%; border: none;
+            background: #e0e0e0; color: #666; font-size: 10px;
+            line-height: 16px; text-align: center; cursor: pointer;
+            padding: 0; z-index: 10;
+        }
+        .drag-item-remove:hover { background: #ff4444; color: #fff; }
+
+        /* ── Venn Diagram ── */
+        .venn-container { margin: 0 auto; }
+
+        .venn-circle {
+            border-radius: 50%;
+            position: absolute;
+            display: flex; align-items: flex-start; justify-content: center;
+            padding-top: 30px; font-family: Arial, sans-serif;
+            background: rgba(0, 0, 0, 0.05); border: 2px solid #000;
+            pointer-events: none;
+        }
+        .venn-label {
+            font-size: 18px; font-weight: 700; color: #000;
+            pointer-events: none; max-width: 160px;
+            text-align: center; word-wrap: break-word;
+            overflow-wrap: break-word; line-height: 1.3;
+        }
+
+        /* ── Two Axis Chart ── */
+        .two-axis-container { margin: 0 auto; }
+
+        .two-axis-container::before {
+            content: ''; position: absolute; left: 50%; top: 0; bottom: 0;
+            width: 2px; background: #000; transform: translateX(-50%);
+        }
+        .two-axis-container::after {
+            content: ''; position: absolute; top: 50%; left: 0; right: 0;
+            height: 2px; background: #000; transform: translateY(-50%);
+        }
+        .axis-label {
+            position: absolute; font-weight: 600; font-size: 14px;
+            color: #000; font-family: Arial, sans-serif; pointer-events: none;
+        }
+        .axis-arrow {
+            position: absolute; font-size: 18px; color: #000;
+            font-weight: 700; pointer-events: none;
+        }
+
+        /* ── Tier List ── */
+        .tier-list { width: 100%; }
+        .tier-row {
+            display: flex; border: 2px solid #000;
+            margin-bottom: -2px; min-height: 100px;
+        }
+        .tier-label {
+            width: 80px; display: flex; align-items: center; justify-content: center;
+            font-size: 36px; font-weight: 700; border-right: 2px solid #000;
+            color: #000; background: #fff; font-family: Arial, sans-serif;
+        }
+        .tier-content {
+            flex: 1; display: flex; flex-wrap: wrap; padding: 8px;
+            gap: 8px; align-items: center; background: #fff;
+        }
+        .tier-item {
+            display: flex; flex-direction: column; align-items: center;
+            gap: 4px; padding: 4px; border: 1px solid #eee;
+            border-radius: 6px; background: #fafafa; min-width: 80px;
+            font-family: Arial, sans-serif;
+        }
+        .tier-item img {
+            width: 64px; height: 64px; object-fit: cover;
+            border-radius: 4px; border: 1px solid #ddd;
+        }
+        .tier-item span {
+            font-size: 11px; font-weight: 600; color: #000;
+            text-align: center; max-width: 80px; overflow: hidden;
+            text-overflow: ellipsis; white-space: nowrap;
+        }
+        .tier-add-btn {
+            padding: 4px 10px; font-size: 11px; font-family: 'Inter', sans-serif;
+            font-weight: 500; border: 1px dashed #ccc; border-radius: 6px;
+            background: transparent; color: #999; cursor: pointer; transition: all 0.15s;
+        }
+        .tier-add-btn:hover { border-color: #0c8ce9; color: #0c8ce9; }
+        .tier-item-edit {
+            display: flex; flex-direction: column; align-items: center;
+            gap: 4px; padding: 6px; border: 1px solid #e5e5e5;
+            border-radius: 6px; background: #fafafa; position: relative;
+        }
+        .tier-item-edit input[type="file"] { font-size: 9px; width: 90px; }
+        .tier-item-edit input[type="text"] {
+            width: 90px; padding: 3px 5px; font-size: 11px;
+            font-family: 'Inter', sans-serif; border: 1px solid #e5e5e5; border-radius: 4px;
+        }
+        .tier-item-remove {
+            position: absolute; top: -6px; right: -6px;
+            width: 16px; height: 16px; border-radius: 50%; border: none;
+            background: #e0e0e0; color: #666; font-size: 10px;
+            line-height: 16px; text-align: center; cursor: pointer; padding: 0;
+        }
+        .tier-item-remove:hover { background: #ff4444; color: #fff; }
+
+        /* ── Iceberg ── */
+        .iceberg-container {
+            max-width: 500px; margin: 0 auto;
+            display: flex; flex-direction: column; align-items: center;
+        }
+
+        .iceberg-svg-wrap {
+            position: relative; width: 100%;
+        }
+
+        .iceberg-svg-bg {
+            width: 100%; display: block;
+        }
+
+        .iceberg-level-slot {
+            position: absolute; left: 50%; transform: translateX(-50%);
+            display: flex; align-items: center; justify-content: center;
+            gap: 8px; text-align: center; font-weight: 600;
+            color: #000; font-family: Arial, sans-serif; font-size: 13px;
+        }
+
+        .iceberg-img {
+            width: 48px; height: 48px; object-fit: cover;
+            border-radius: 4px; border: 1px solid #ddd; flex-shrink: 0;
+        }
+
+        .hidden { display: none; }
+
+        /* ── Saved Memes Modal ── */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.4); z-index: 900;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .modal-overlay.hidden { display: none; }
+        .modal {
+            background: #fff; border-radius: 10px; width: 520px;
+            max-height: 80vh; display: flex; flex-direction: column;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+        }
+        .modal-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 16px 20px; border-bottom: 1px solid #e5e5e5;
+        }
+        .modal-header h3 {
+            font-size: 15px; font-weight: 600; color: #333; margin: 0;
+        }
+        .modal-close {
+            width: 28px; height: 28px; border-radius: 6px; border: none;
+            background: transparent; color: #999; font-size: 18px;
+            cursor: pointer; display: flex; align-items: center;
+            justify-content: center;
+        }
+        .modal-close:hover { background: #f0f0f0; color: #333; }
+        .modal-body {
+            padding: 16px 20px; overflow-y: auto; flex: 1;
+        }
+        .modal-empty {
+            text-align: center; color: #999; font-size: 13px;
+            padding: 32px 0;
+        }
+        .saved-meme-card {
+            display: flex; align-items: center; gap: 12px;
+            padding: 10px 12px; border: 1px solid #e5e5e5; border-radius: 8px;
+            margin-bottom: 8px; cursor: pointer; transition: all 0.15s;
+        }
+        .saved-meme-card:hover { border-color: #0c8ce9; background: #f8fbff; }
+        .saved-meme-info { flex: 1; min-width: 0; }
+        .saved-meme-name {
+            font-size: 13px; font-weight: 600; color: #333;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .saved-meme-meta {
+            font-size: 11px; color: #999; margin-top: 2px;
+        }
+        .saved-meme-delete {
+            width: 28px; height: 28px; border-radius: 6px; border: none;
+            background: transparent; color: #ccc; font-size: 14px;
+            cursor: pointer; display: flex; align-items: center;
+            justify-content: center; flex-shrink: 0;
+        }
+        .saved-meme-delete:hover { background: #fee; color: #f44; }
+
+        .save-name-row {
+            display: flex; gap: 8px; margin-bottom: 12px;
+        }
+        .save-name-row input[type="text"] {
+            flex: 1; padding: 7px 10px; font-size: 13px;
+            font-family: 'Inter', sans-serif; border: 1px solid #e5e5e5;
+            border-radius: 6px; background: #fafafa; color: #333;
+        }
+        .save-name-row input[type="text"]:focus {
+            outline: none; border-color: #0c8ce9; background: #fff;
+        }
+        .save-name-row button {
+            padding: 7px 16px; font-size: 12px; font-weight: 600;
+            font-family: 'Inter', sans-serif; border: none; border-radius: 6px;
+            background: #0c8ce9; color: #fff; cursor: pointer;
+            white-space: nowrap;
+        }
+        .save-name-row button:hover { background: #0a7ad4; }
+    </style>
+</head>
+<body>
+    <div class="app-shell">
+        <div class="toolbar">
+            <div class="toolbar-left">Meme Generator</div>
+            <div class="toolbar-center">
+                <div class="seg-control">
+                    <button class="active" onclick="switchTemplate('alignment')" data-template="alignment">Alignment Chart</button>
+                    <button onclick="switchTemplate('venn')" data-template="venn">Venn Diagram</button>
+                    <button onclick="switchTemplate('twoaxis')" data-template="twoaxis">Two Axis</button>
+                    <button onclick="switchTemplate('tier')" data-template="tier">Tier List</button>
+                    <button onclick="switchTemplate('iceberg')" data-template="iceberg">Iceberg</button>
+                </div>
+            </div>
+            <div class="toolbar-right">
+<button class="toolbar-btn toolbar-btn-ghost" onclick="toggleEditMode()" id="editBtn">Preview</button>
+                <button class="toolbar-btn toolbar-btn-ghost" onclick="clearAll()">Clear</button>
+                <button class="toolbar-btn" onclick="openSavedModal()">Saved</button>
+                <button class="toolbar-btn toolbar-btn-primary" onclick="downloadMeme()" id="downloadBtn">Download</button>
+            </div>
+        </div>
+
+        <div class="workspace">
+            <div class="sidebar">
+                <div class="sidebar-header">Properties</div>
+                <div id="templateInputs"></div>
+            </div>
+            <div class="canvas-area">
+                <div class="artboard">
+                    <div id="memeCanvas"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay hidden" id="savedModal" onclick="if(event.target===this)closeSavedModal()">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Saved Memes</h3>
+                <button class="modal-close" onclick="closeSavedModal()">x</button>
+            </div>
+            <div class="modal-body">
+                <div class="save-name-row">
+                    <input type="text" id="saveNameInput" placeholder="Name this meme...">
+                    <button onclick="saveCurrentMeme()">Save Current</button>
+                </div>
+                <div id="savedMemesList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentTemplate = 'alignment';
+        let editMode = true;
+        let templateData = {};
+        let selectedItemIndex = -1;
+        let dragState = null;
+
+        const RATIOS = { '1:1': { w: 800, h: 800 } };
+        let currentRatio = '1:1';
+
+        function getContentSize() {
+            const r = RATIOS[currentRatio];
+            return { w: r.w - 80, h: r.h - 80 };
+        }
+
+        function getVennSize() {
+            const c = getContentSize();
+            const w = c.w;
+            const h = c.h - 60;
+            return { w, h };
+        }
+
+        function getAxisSize() {
+            const c = getContentSize();
+            const size = Math.min(c.w - 20, c.h - 100);
+            return Math.min(size, 680);
+        }
+
+        function rescaleDragItems(oldW, oldH, newW, newH) {
+            if (!templateData.items || oldW === 0 || oldH === 0) return;
+            templateData.items.forEach(item => {
+                item.x = Math.round(item.x * newW / oldW);
+                item.y = Math.round(item.y * newH / oldH);
+            });
+        }
+
+function applyArtboardSize() {
+            const r = RATIOS[currentRatio];
+            const ab = document.querySelector('.artboard');
+            ab.style.width = r.w + 'px';
+            ab.style.height = r.h + 'px';
+        }
+
+        const templates = {
+            alignment: {
+                name: 'Alignment Chart',
+                defaultData: {
+                    title: 'ALIGNMENT CHART',
+                    titleColor: '#000000',
+                    xLabel: 'LAWFUL \u2190 \u2192 CHAOTIC',
+                    yLabel: 'GOOD \u2191 \u2193 EVIL',
+                    cells: Array(9).fill().map(() => ({ image: '', text: '' }))
+                }
+            },
+            venn: {
+                name: 'Venn Diagram',
+                defaultData: {
+                    title: 'VENN DIAGRAM',
+                    titleColor: '#000000',
+                    leftLabel: 'GROUP A',
+                    rightLabel: 'GROUP B',
+                    items: []
+                }
+            },
+            twoaxis: {
+                name: 'Two Axis Chart',
+                defaultData: {
+                    title: 'TWO AXIS CHART',
+                    titleColor: '#000000',
+                    xAxis: 'LOW \u2190 \u2192 HIGH',
+                    yAxis: 'BAD \u2191 \u2193 GOOD',
+                    items: []
+                }
+            },
+            tier: {
+                name: 'Tier List',
+                defaultData: {
+                    title: 'TIER LIST',
+                    titleColor: '#000000',
+                    tiers: ['S', 'A', 'B', 'C', 'D', 'F'].map(t => ({
+                        label: t, items: []
+                    }))
+                }
+            },
+            iceberg: {
+                name: 'Iceberg',
+                defaultData: {
+                    title: 'ICEBERG',
+                    titleColor: '#000000',
+                    levels: Array(6).fill().map(() => ({ text: '', image: '' }))
+                }
+            }
+        };
+
+        function init() {
+            templateData = JSON.parse(JSON.stringify(templates[currentTemplate].defaultData));
+            applyArtboardSize();
+            renderTemplate();
+            renderInputs();
+            document.addEventListener('mousemove', onDrag);
+            document.addEventListener('mouseup', endDrag);
+        }
+
+        function switchTemplate(template) {
+            currentTemplate = template;
+            selectedItemIndex = -1;
+            document.querySelectorAll('.seg-control button').forEach(btn => btn.classList.remove('active'));
+            event.target.closest('button').classList.add('active');
+            templateData = JSON.parse(JSON.stringify(templates[template].defaultData));
+            renderTemplate();
+            renderInputs();
+        }
+
+        /* ── Sidebar ── */
+        function renderInputs() {
+            const c = document.getElementById('templateInputs');
+            let html = '';
+
+            html += `<div class="sidebar-section"><label>Title</label>
+                <input type="text" value="${templateData.title}" oninput="updateData('title', this.value)"></div>`;
+
+            html += `<div class="sidebar-section"><label>Title Color</label>
+                <div class="sidebar-color-row">
+                    <input type="color" value="${templateData.titleColor}" oninput="updateData('titleColor', this.value)">
+                    <input type="text" value="${templateData.titleColor}" oninput="updateData('titleColor', this.value)" maxlength="7">
+                </div></div>`;
+
+            if (currentTemplate === 'alignment') {
+                html += `<div class="sidebar-section"><label>X-Axis Label</label>
+                    <input type="text" value="${templateData.xLabel}" oninput="updateData('xLabel', this.value)"></div>`;
+                html += `<div class="sidebar-section"><label>Y-Axis Label</label>
+                    <input type="text" value="${templateData.yLabel}" oninput="updateData('yLabel', this.value)"></div>`;
+            } else if (currentTemplate === 'venn') {
+                html += `<div class="sidebar-section"><label>Left Circle Label</label>
+                    <input type="text" value="${templateData.leftLabel}" oninput="updateData('leftLabel', this.value)"></div>`;
+                html += `<div class="sidebar-section"><label>Right Circle Label</label>
+                    <input type="text" value="${templateData.rightLabel}" oninput="updateData('rightLabel', this.value)"></div>`;
+                html += renderDragItemsSidebar();
+            } else if (currentTemplate === 'twoaxis') {
+                html += `<div class="sidebar-section"><label>X-Axis</label>
+                    <input type="text" value="${templateData.xAxis}" oninput="updateData('xAxis', this.value)"></div>`;
+                html += `<div class="sidebar-section"><label>Y-Axis</label>
+                    <input type="text" value="${templateData.yAxis}" oninput="updateData('yAxis', this.value)"></div>`;
+                html += renderDragItemsSidebar();
+            }
+
+            c.innerHTML = html;
+        }
+
+        function renderDragItemsSidebar() {
+            const items = templateData.items;
+            let html = `<div class="sidebar-section"><label>Items</label>`;
+            items.forEach((item, i) => {
+                if (i === selectedItemIndex) {
+                    html += `<div class="sidebar-item-edit">
+                        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">`;
+                    if (item.image) html += `<img src="${item.image}" class="sidebar-item-thumb">`;
+                    else html += `<div class="sidebar-item-placeholder">?</div>`;
+                    html += `<span style="flex:1;font-size:12px;font-weight:500;color:#333;">${item.text || 'Item ' + (i+1)}</span>
+                        <button class="sidebar-item-remove" onclick="removeDragItem(${i})">x</button></div>
+                        <input type="file" accept="image/*" onchange="handleDragItemImage(${i}, event)">
+                        <input type="text" placeholder="Label..." value="${item.text || ''}" oninput="updateDragItemText(${i}, this.value)">
+                    </div>`;
+                } else {
+                    html += `<div class="sidebar-item-row" onclick="selectItem(${i})">`;
+                    if (item.image) html += `<img src="${item.image}" class="sidebar-item-thumb">`;
+                    else html += `<div class="sidebar-item-placeholder">?</div>`;
+                    html += `<span class="sidebar-item-label">${item.text || 'Item ' + (i+1)}</span>
+                        <button class="sidebar-item-remove" onclick="event.stopPropagation();removeDragItem(${i})">x</button></div>`;
+                }
+            });
+            html += `<button class="sidebar-add-btn" onclick="addDragItem()">+ Add Item</button></div>`;
+            return html;
+        }
+
+        function selectItem(i) { selectedItemIndex = i; renderInputs(); }
+
+        function addDragItem() {
+            let w, h;
+            if (currentTemplate === 'venn') {
+                const v = getVennSize();
+                w = v.w; h = v.h;
+            } else {
+                const s = getAxisSize();
+                w = s; h = s;
+            }
+            templateData.items.push({
+                id: Date.now(), image: '', text: '',
+                x: Math.round(w/2 + (Math.random()-0.5)*40),
+                y: Math.round(h/2 + (Math.random()-0.5)*40)
+            });
+            selectedItemIndex = templateData.items.length - 1;
+            renderTemplate(); renderInputs();
+        }
+
+        function removeDragItem(i) {
+            templateData.items.splice(i, 1);
+            if (selectedItemIndex >= templateData.items.length || selectedItemIndex === i) selectedItemIndex = -1;
+            renderTemplate(); renderInputs();
+        }
+
+        function handleDragItemImage(i, event) {
+            const file = event.target.files[0];
+            if (file) {
+                const r = new FileReader();
+                r.onload = (e) => { templateData.items[i].image = e.target.result; renderTemplate(); renderInputs(); };
+                r.readAsDataURL(file);
+            }
+        }
+
+        function updateDragItemText(i, v) {
+            templateData.items[i].text = v;
+            const el = document.querySelector(`[data-item-index="${i}"] span`);
+            if (el) el.textContent = v;
+        }
+
+        /* ── Drag System ── */
+        function startDrag(i, event) {
+            if (!editMode) return;
+            event.preventDefault();
+            const container = event.target.closest('.drag-canvas');
+            if (!container) return;
+            const rect = container.getBoundingClientRect();
+            const item = templateData.items[i];
+            dragState = {
+                index: i, containerRect: rect,
+                offsetX: event.clientX - (rect.left + item.x),
+                offsetY: event.clientY - (rect.top + item.y),
+                containerW: container.offsetWidth,
+                containerH: container.offsetHeight
+            };
+            selectedItemIndex = i; renderInputs();
+            const el = document.querySelector(`[data-item-index="${i}"]`);
+            if (el) el.classList.add('dragging');
+        }
+
+        function onDrag(event) {
+            if (!dragState) return;
+            event.preventDefault();
+            const { index, containerRect, offsetX, offsetY, containerW, containerH } = dragState;
+            let x = Math.max(0, Math.min(containerW, event.clientX - containerRect.left - offsetX));
+            let y = Math.max(0, Math.min(containerH, event.clientY - containerRect.top - offsetY));
+            templateData.items[index].x = Math.round(x);
+            templateData.items[index].y = Math.round(y);
+            const el = document.querySelector(`[data-item-index="${index}"]`);
+            if (el) { el.style.left = x + 'px'; el.style.top = y + 'px'; }
+        }
+
+        function endDrag() {
+            if (!dragState) return;
+            const el = document.querySelector(`[data-item-index="${dragState.index}"]`);
+            if (el) el.classList.remove('dragging');
+            dragState = null;
+        }
+
+        /* ── Helpers ── */
+        function updateData(key, value) { templateData[key] = value; renderTemplate(); renderInputs(); }
+
+        function renderTemplate() {
+            const canvas = document.getElementById('memeCanvas');
+            ({
+                alignment: renderAlignmentChart,
+                venn: renderVennDiagram,
+                twoaxis: renderTwoAxisChart,
+                tier: renderTierList,
+                iceberg: renderIceberg
+            })[currentTemplate](canvas);
+        }
+
+        function renderDragItems(items) {
+            let html = '';
+            items.forEach((item, i) => {
+                html += `<div class="drag-item${editMode ? '' : ' preview'}"
+                    data-item-index="${i}" style="left:${item.x}px;top:${item.y}px;"
+                    ${editMode ? `onmousedown="startDrag(${i}, event)"` : ''}>`;
+                if (editMode) html += `<button class="drag-item-remove" onmousedown="event.stopPropagation()" onclick="removeDragItem(${i})">x</button>`;
+                if (item.image) html += `<img src="${item.image}" draggable="false">`;
+                html += `<span>${item.text || (editMode ? 'Item '+(i+1) : '')}</span></div>`;
+            });
+            return html;
+        }
+
+        function titleHtml() {
+            return `<div class="meme-title" style="color:${templateData.titleColor}">${templateData.title}</div>`;
+        }
+
+        /* ── Alignment Chart ── */
+        function renderAlignmentChart(canvas) {
+            const cs = getContentSize();
+            let html = `<div style="width:${cs.w}px;height:${cs.h}px;display:flex;flex-direction:column;">`;
+            html += `<div class="meme-title" style="color:${templateData.titleColor};flex-shrink:0;">${templateData.title}</div>`;
+            html += `<div class="axis-info" style="flex-shrink:0;">${templateData.yLabel}</div>`;
+            html += `<div class="alignment-grid" style="flex:1;">`;
+            templateData.cells.forEach((cell, i) => {
+                html += `<div class="alignment-cell">`;
+                if (cell.image) html += `<img src="${cell.image}" class="cell-image">`;
+                if (editMode) {
+                    html += `<div class="edit-controls">
+                        <input type="file" accept="image/*" onchange="handleImage(${i}, event)">
+                        <textarea placeholder="Cell ${i+1}..." oninput="updateCellText(${i}, this.value)">${cell.text}</textarea></div>`;
+                } else { if (cell.text) html += `<div class="cell-text">${cell.text}</div>`; }
+                html += `</div>`;
+            });
+            html += `</div>`;
+            html += `<div class="axis-info" style="flex-shrink:0;">${templateData.xLabel}</div>`;
+            html += `</div>`;
+            canvas.innerHTML = html;
+        }
+
+        /* ── Venn Diagram ── */
+        function renderVennDiagram(canvas) {
+            const { w: VENN_W, h: VENN_H } = getVennSize();
+            const circleSize = Math.min(Math.round(VENN_W * 0.56), 400);
+            const overlap = Math.round(circleSize * 0.28);
+            const totalSpan = 2 * circleSize - overlap;
+            const leftStart = Math.round((VENN_W - totalSpan) / 2);
+            const rightStart = leftStart + circleSize - overlap;
+            const circleTop = Math.round((VENN_H - circleSize) / 2);
+            let html = titleHtml();
+            html += `<div class="venn-container drag-canvas" style="width:${VENN_W}px;height:${VENN_H}px;">`;
+            html += `<div class="venn-circle" style="width:${circleSize}px;height:${circleSize}px;left:${leftStart}px;top:${circleTop}px;"><div class="venn-label">${templateData.leftLabel}</div></div>`;
+            html += `<div class="venn-circle" style="width:${circleSize}px;height:${circleSize}px;left:${rightStart}px;top:${circleTop}px;"><div class="venn-label">${templateData.rightLabel}</div></div>`;
+            html += renderDragItems(templateData.items);
+            html += '</div>';
+            canvas.innerHTML = html;
+        }
+
+        /* ── Two Axis Chart ── */
+        function renderTwoAxisChart(canvas) {
+            const AXIS_W = getAxisSize(), AXIS_H = getAxisSize();
+            let html = titleHtml();
+            html += `<div class="two-axis-container drag-canvas" style="width:${AXIS_W}px;height:${AXIS_H}px;">`;
+            html += `<div class="axis-arrow" style="top:-6px;left:50%;transform:translateX(-50%);">\u25B2</div>`;
+            html += `<div class="axis-arrow" style="bottom:-6px;left:50%;transform:translateX(-50%);">\u25BC</div>`;
+            html += `<div class="axis-arrow" style="left:-6px;top:50%;transform:translateY(-50%);">\u25C0</div>`;
+            html += `<div class="axis-arrow" style="right:-6px;top:50%;transform:translateY(-50%);">\u25B6</div>`;
+            const yP = templateData.yAxis.split(/\u2191|\u2193/).map(s=>s.trim());
+            const xP = templateData.xAxis.split(/\u2190|\u2192/).map(s=>s.trim());
+            html += `<div class="axis-label" style="top:-28px;left:50%;transform:translateX(-50%);">${yP[0]||''}</div>`;
+            html += `<div class="axis-label" style="bottom:-28px;left:50%;transform:translateX(-50%);">${yP[yP.length-1]||''}</div>`;
+            html += `<div class="axis-label" style="left:-10px;top:50%;transform:translate(-100%,-50%);">${xP[0]||''}</div>`;
+            html += `<div class="axis-label" style="right:-10px;top:50%;transform:translate(100%,-50%);">${xP[xP.length-1]||''}</div>`;
+            html += renderDragItems(templateData.items);
+            html += '</div>';
+            canvas.innerHTML = html;
+        }
+
+        /* ── Tier List ── */
+        function renderTierList(canvas) {
+            let html = titleHtml() + '<div class="tier-list">';
+            templateData.tiers.forEach((tier, ti) => {
+                html += `<div class="tier-row"><div class="tier-label">${tier.label}</div><div class="tier-content">`;
+                tier.items.forEach((item, ii) => {
+                    if (editMode) {
+                        html += `<div class="tier-item-edit">
+                            <button class="tier-item-remove" onclick="removeTierItem(${ti},${ii})">x</button>`;
+                        if (item.image) html += `<img src="${item.image}" style="width:64px;height:64px;object-fit:cover;border-radius:4px;border:1px solid #ddd;">`;
+                        html += `<input type="file" accept="image/*" onchange="handleTierImage(${ti},${ii},event)">
+                            <input type="text" placeholder="Label..." value="${item.text||''}" oninput="updateTierItemText(${ti},${ii},this.value)"></div>`;
+                    } else {
+                        html += `<div class="tier-item">`;
+                        if (item.image) html += `<img src="${item.image}">`;
+                        if (item.text) html += `<span>${item.text}</span>`;
+                        html += `</div>`;
+                    }
+                });
+                if (editMode) html += `<button class="tier-add-btn" onclick="addTierItem(${ti})">+ Add</button>`;
+                html += `</div></div>`;
+            });
+            html += '</div>';
+            canvas.innerHTML = html;
+        }
+
+        function addTierItem(ti) { templateData.tiers[ti].items.push({image:'',text:''}); renderTemplate(); }
+        function removeTierItem(ti,ii) { templateData.tiers[ti].items.splice(ii,1); renderTemplate(); }
+        function handleTierImage(ti,ii,event) {
+            const file = event.target.files[0];
+            if (file) { const r=new FileReader(); r.onload=(e)=>{templateData.tiers[ti].items[ii].image=e.target.result;renderTemplate();}; r.readAsDataURL(file); }
+        }
+        function updateTierItemText(ti,ii,v) { templateData.tiers[ti].items[ii].text = v; }
+
+        /* ── Iceberg ── */
+        function renderIceberg(canvas) {
+            const labels = ['Surface', 'Just Below', 'Deep', 'Deeper', 'Abyss', 'The Void'];
+            // Iceberg shape: flat-ish top, wide middle, tapers to point at bottom
+            // Using an SVG polygon for the outline
+            const svgW = 500, svgH = 650;
+            // Waterline at ~15% from top
+            const waterY = 100;
+
+            let html = titleHtml();
+            html += `<div class="iceberg-svg-wrap" style="width:${svgW}px;height:${svgH}px;position:relative;margin:0 auto;">`;
+
+            // SVG iceberg shape
+            html += `<svg class="iceberg-svg-bg" viewBox="0 0 ${svgW} ${svgH}" width="${svgW}" height="${svgH}" xmlns="http://www.w3.org/2000/svg">`;
+
+            // Water background (below waterline)
+            html += `<rect x="0" y="${waterY}" width="${svgW}" height="${svgH - waterY}" fill="#f0f4f8" />`;
+
+            // Waterline
+            html += `<line x1="0" y1="${waterY}" x2="${svgW}" y2="${waterY}" stroke="#000" stroke-width="1.5" stroke-dasharray="8,6" />`;
+
+            // Iceberg polygon — tip above water, widens below, tapers to point
+            const icebergPoints = [
+                // Above water (small tip)
+                [210, 20],   // top-left of tip
+                [290, 20],   // top-right of tip
+                // At waterline — slightly wider
+                [310, waterY],
+                // Below water — widens out
+                [380, 200],
+                [440, 320],
+                [460, 400],
+                [440, 480],
+                [380, 550],
+                // Bottom point
+                [250, 630],
+                // Come back up the left side
+                [120, 550],
+                [60, 480],
+                [40, 400],
+                [60, 320],
+                [120, 200],
+                [190, waterY],
+            ];
+            const pointsStr = icebergPoints.map(p => p.join(',')).join(' ');
+            html += `<polygon points="${pointsStr}" fill="#ffffff" stroke="#000" stroke-width="2" />`;
+
+            // Horizontal level dividers inside the iceberg
+            // We'll draw lines at specific Y positions where levels divide
+            const levelYs = [waterY, 180, 280, 390, 500, 580];
+
+            // Calculate x-intersections with the iceberg outline at each Y for the divider lines
+            function getIcebergXAtY(y) {
+                // Walk the polygon edges to find left and right x at given y
+                let leftX = svgW, rightX = 0;
+                for (let i = 0; i < icebergPoints.length; i++) {
+                    const [x1, y1] = icebergPoints[i];
+                    const [x2, y2] = icebergPoints[(i + 1) % icebergPoints.length];
+                    if ((y1 <= y && y2 >= y) || (y2 <= y && y1 >= y)) {
+                        if (y1 === y2) continue;
+                        const t = (y - y1) / (y2 - y1);
+                        const ix = x1 + t * (x2 - x1);
+                        leftX = Math.min(leftX, ix);
+                        rightX = Math.max(rightX, ix);
+                    }
+                }
+                return [leftX, rightX];
+            }
+
+            // Draw divider lines (skip first = waterline already drawn, skip last = bottom point)
+            for (let i = 1; i < levelYs.length - 1; i++) {
+                const [lx, rx] = getIcebergXAtY(levelYs[i]);
+                html += `<line x1="${lx}" y1="${levelYs[i]}" x2="${rx}" y2="${levelYs[i]}" stroke="#000" stroke-width="1" stroke-opacity="0.3" />`;
+            }
+
+            html += `</svg>`;
+
+            // Position level slots over the SVG
+            const levelSlotYs = [
+                // Center Y of each level
+                (20 + waterY) / 2,             // tip above water
+                (waterY + 180) / 2,             // level 2
+                (180 + 280) / 2,                // level 3
+                (280 + 390) / 2,                // level 4
+                (390 + 500) / 2,                // level 5
+                (500 + 600) / 2,                // level 6
+            ];
+            const levelWidths = [120, 180, 260, 320, 300, 200];
+
+            templateData.levels.forEach((level, i) => {
+                html += `<div class="iceberg-level-slot" style="top:${levelSlotYs[i]}px;width:${levelWidths[i]}px;transform:translate(-50%,-50%);">`;
+                if (level.image) html += `<img src="${level.image}" class="iceberg-img">`;
+                if (editMode) {
+                    html += `<div style="display:flex;flex-direction:column;gap:3px;align-items:center;flex:1;min-width:0;">
+                        <input type="file" accept="image/*" style="font-size:9px;width:100%;" onchange="handleIcebergImage(${i}, event)">
+                        <textarea style="width:100%;min-height:28px;font-size:11px;font-family:Inter,sans-serif;border:1px solid #ddd;border-radius:4px;padding:3px;background:rgba(255,255,255,0.8);"
+                            placeholder="${labels[i]}..." oninput="updateLevel(${i}, this.value)">${level.text}</textarea></div>`;
+                } else {
+                    html += `<div style="font-size:13px;font-weight:600;">${level.text}</div>`;
+                }
+                html += `</div>`;
+            });
+
+            html += '</div>';
+            canvas.innerHTML = html;
+        }
+
+        function handleIcebergImage(i, event) {
+            const file = event.target.files[0];
+            if (file) { const r=new FileReader(); r.onload=(e)=>{templateData.levels[i].image=e.target.result;renderTemplate();}; r.readAsDataURL(file); }
+        }
+
+        /* ── Shared ── */
+        function handleImage(i, event) {
+            const file = event.target.files[0];
+            if (file) { const r=new FileReader(); r.onload=(e)=>{templateData.cells[i].image=e.target.result;renderTemplate();}; r.readAsDataURL(file); }
+        }
+        function updateCellText(i, t) { templateData.cells[i].text = t; }
+        function updateLevel(i, v) { templateData.levels[i].text = v; }
+
+        /* ── Controls ── */
+        function toggleEditMode() {
+            editMode = !editMode; selectedItemIndex = -1;
+            document.getElementById('editBtn').textContent = editMode ? 'Preview' : 'Edit';
+            renderTemplate(); renderInputs();
+        }
+
+        function clearAll() {
+            if (confirm('Clear all content? This cannot be undone.')) {
+                selectedItemIndex = -1;
+                templateData = JSON.parse(JSON.stringify(templates[currentTemplate].defaultData));
+                renderTemplate(); renderInputs();
+            }
+        }
+
+        async function downloadMeme() {
+            const btn = document.getElementById('downloadBtn');
+            const orig = btn.textContent;
+            btn.textContent = 'Generating...'; btn.disabled = true;
+            const wasEdit = editMode;
+            if (wasEdit) { editMode = false; renderTemplate(); }
+            try {
+                const c = await html2canvas(document.getElementById('memeCanvas'), {
+                    scale: 2, backgroundColor: '#ffffff', logging: false, useCORS: true
+                });
+                const link = document.createElement('a');
+                link.download = `${currentTemplate}-meme-${Date.now()}.png`;
+                link.href = c.toDataURL('image/png');
+                link.click();
+                btn.textContent = 'Downloaded';
+                setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 2000);
+            } catch (err) {
+                console.error(err);
+                btn.textContent = 'Error';
+                setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 2000);
+            }
+            if (wasEdit) { editMode = true; renderTemplate(); }
+        }
+
+        /* ── Saved Memes (localStorage) ── */
+        const STORAGE_KEY = 'memeGenerator_savedMemes';
+
+        function getSavedMemes() {
+            try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+            catch { return []; }
+        }
+
+        function setSavedMemes(memes) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(memes));
+        }
+
+        function openSavedModal() {
+            document.getElementById('savedModal').classList.remove('hidden');
+            document.getElementById('saveNameInput').value = templateData.title || '';
+            renderSavedList();
+        }
+
+        function closeSavedModal() {
+            document.getElementById('savedModal').classList.add('hidden');
+        }
+
+        function saveCurrentMeme() {
+            const nameInput = document.getElementById('saveNameInput');
+            const name = nameInput.value.trim() || templateData.title || 'Untitled';
+            const saved = getSavedMemes();
+            saved.unshift({
+                id: Date.now(),
+                name: name,
+                template: currentTemplate,
+                data: JSON.parse(JSON.stringify(templateData)),
+                date: new Date().toISOString()
+            });
+            setSavedMemes(saved);
+            nameInput.value = '';
+            renderSavedList();
+        }
+
+        function loadSavedMeme(id) {
+            const saved = getSavedMemes();
+            const meme = saved.find(m => m.id === id);
+            if (!meme) return;
+            currentTemplate = meme.template;
+            templateData = JSON.parse(JSON.stringify(meme.data));
+            selectedItemIndex = -1;
+            document.querySelectorAll('.seg-control button').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.template === currentTemplate);
+            });
+            renderTemplate();
+            renderInputs();
+            closeSavedModal();
+        }
+
+        function deleteSavedMeme(id, event) {
+            event.stopPropagation();
+            const saved = getSavedMemes().filter(m => m.id !== id);
+            setSavedMemes(saved);
+            renderSavedList();
+        }
+
+        function renderSavedList() {
+            const container = document.getElementById('savedMemesList');
+            const saved = getSavedMemes();
+            if (saved.length === 0) {
+                container.innerHTML = '<div class="modal-empty">No saved memes yet. Save your current meme above.</div>';
+                return;
+            }
+            let html = '';
+            saved.forEach(meme => {
+                const date = new Date(meme.date);
+                const dateStr = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+                    + ' ' + date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+                const tplName = templates[meme.template] ? templates[meme.template].name : meme.template;
+                html += `<div class="saved-meme-card" onclick="loadSavedMeme(${meme.id})">
+                    <div class="saved-meme-info">
+                        <div class="saved-meme-name">${meme.name}</div>
+                        <div class="saved-meme-meta">${tplName} &middot; ${dateStr}</div>
+                    </div>
+                    <button class="saved-meme-delete" onclick="deleteSavedMeme(${meme.id}, event)" title="Delete">x</button>
+                </div>`;
+            });
+            container.innerHTML = html;
+        }
+
+        init();
+    </script>
+</body>
+</html>
